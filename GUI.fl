@@ -1,0 +1,101 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0305
+i18n_type 2
+i18n_include <nl_types.h>
+i18n_set 1
+header_name {.h}
+code_name {.cxx}
+Function {make_window()} {open
+} {
+  Fl_Window {} {
+    label nbima open
+    xywh {293 409 1150 540} type Double labelsize 12 align 80 visible
+  } {
+    Fl_Group {} {
+      label {Noise Source Calibration} open
+      xywh {10 50 305 140} box BORDER_BOX labelsize 11 align 5
+    } {
+      Fl_Value_Input {} {
+        label {Lower frequency, MHz}
+        xywh {155 60 150 20} labelsize 12 value 100 textsize 12
+      }
+      Fl_Value_Input {} {
+        label {Upper frequency, MHz}
+        xywh {155 85 150 20} labelsize 12 value 1000 textsize 12
+      }
+      Fl_Value_Input {} {
+        label {Frame size}
+        xywh {155 110 150 20} labelsize 12 value 4096 textsize 12
+      }
+      Fl_Value_Input {} {
+        label {Re-tuning period, ms}
+        xywh {155 135 150 20} labelsize 12 value 100 textsize 12
+      }
+      Fl_Button btn_calibrate {
+        label Calibrate
+        xywh {230 160 75 20} type Toggle labelsize 12
+      }
+    }
+    Fl_Button {} {
+      label {help?}
+      xywh {280 30 35 20} box NO_BOX labelsize 9 labelcolor 136
+    }
+    Fl_Box {} {
+      label {Estimated noise generator frequency spectrum}
+      xywh {325 50 815 145} box FLAT_BOX color 24 labelsize 11 align 5
+    }
+    Fl_Group {} {
+      label {Two-point circuit examination} open
+      xywh {10 215 305 165} box BORDER_BOX labelsize 11 align 5
+    } {
+      Fl_Button {} {
+        label Measure
+        xywh {220 350 85 20} labelsize 12
+      }
+      Fl_Value_Input {} {
+        label {Lower frequency, MHz}
+        xywh {155 225 150 20} labelsize 12 value 100 textsize 12
+      }
+      Fl_Value_Input {} {
+        label {Upper frequency, MHz}
+        xywh {155 250 150 20} labelsize 12 value 1000 textsize 12
+      }
+      Fl_Value_Input {} {
+        label {Frame size}
+        xywh {155 275 150 20} labelsize 12 value 4096 textsize 12
+      }
+      Fl_Value_Input {} {
+        label {Impedance, Ω}
+        xywh {155 325 150 20} labelsize 12 textsize 12
+      }
+      Fl_Value_Input {} {
+        label {Re-tuning period, ms}
+        xywh {155 300 150 20} labelsize 12 value 100 textsize 12
+      }
+    }
+    Fl_Menu_Bar {} {open
+      xywh {0 0 1150 25} box BORDER_BOX
+    } {
+      MenuItem {} {
+        label File
+        xywh {0 0 100 20} labelsize 10
+      }
+      MenuItem {} {
+        label About
+        xywh {10 10 100 20} labelsize 10
+      }
+    }
+    Fl_Box {} {
+      label {Frequency response}
+      xywh {325 215 815 145} box FLAT_BOX color 24 labelsize 11 align 5
+    }
+    Fl_Box {} {
+      label SWR
+      xywh {325 380 815 145} box FLAT_BOX color 24 labelsize 11 align 5
+    }
+    Fl_Text_Display debug_info_panel {
+      label {Debug info} selected
+      xywh {10 400 305 125} labelsize 11 align 5 textsize 11
+    }
+  }
+}

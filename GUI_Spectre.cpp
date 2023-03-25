@@ -42,7 +42,7 @@ void GUI_Spectre::draw() {
         }
         
         if (buffer[i] > max) {
-            max = 0.99 * max + 0.01 * buffer[i];
+            max = buffer[i];
         }
     }
     
@@ -57,7 +57,7 @@ void GUI_Spectre::draw() {
         return;
     }
 
-    int decimation = 10;
+    int decimation = 1;
     
     for (int i = 1; i < buffer_size / decimation; i++) {
         float val0 = 0;

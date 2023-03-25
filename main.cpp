@@ -36,6 +36,9 @@ typedef struct nbima_scan_context
 
     float* scan_buffer;
 
+    // dsp
+    float DC_blocker_coef = 0.1;
+
     pthread_t tid_tuner;
     pthread_t tid_reception;
 } nbima_scan_context;
@@ -59,7 +62,7 @@ void* thread_tuner(void* arg) {
 
     while(1) {
         ctx->current_freq += MHz(1);
-        ctx->sample_offset += ctx->frame_size;
+        ctx->sample_offset += ctx->frame_size / 2;
         if (ctx->current_freq >= ctx->upper_freq) {
             ctx->current_freq = ctx->lower_freq;
             ctx->sample_offset = 0;
@@ -80,7 +83,8 @@ void* thread_tuner(void* arg) {
 // len - size of the u8 buffer
 void rtlsdr_cb(uint8_t* buf, uint32_t len, void* arg) {
     static nbima_scan_context* ctx = (nbima_scan_context*)arg;
-    static float k = 0.95;
+    static float k = 0.8; // averaging
+    float R = ctx->DC_blocker_coef;  // DC blocking
 
     // u8[] -> std::complex<float>[]
     for (int i = 0; i < ctx->frame_size; i++) {
@@ -88,12 +92,24 @@ void rtlsdr_cb(uint8_t* buf, uint32_t len, void* arg) {
         (ctx->fft_time_buffer[i]).imag((float)buf[2*i + 1]);
     }
 
+    // DC filter
+    std::complex<float> dcf_buffer[2] = { 0, 0 };
+    for (int i = 0; i < ctx->frame_size; i++) {
+        dcf_buffer[1] = dcf_buffer[0];
+        dcf_buffer[0] = ctx->fft_time_buffer[i];
+        ctx->fft_time_buffer[i] = ctx->fft_time_buffer[i] - dcf_buffer[1] + R * ((i - 1 >= 0) ? ctx->fft_time_buffer[i - 1] : 0);
+        // printf("%f\n", norm(ctx->fft_time_buffer[i]));
+    }
+
     fftwf_execute(ctx->fft_plan);
 
     // fft amplitude -> dB PSD
-    for (int i = 0; i < ctx->frame_size; i++) {
+    for (int i = 0; i < ctx->frame_size / 2; i++) {
         ctx->scan_buffer[i + ctx->sample_offset] *= k;
-        ctx->scan_buffer[i + ctx->sample_offset] += (1 - k) * 10 * log10(norm(ctx->fft_freq_buffer[i]));
+
+        int n = (ctx->frame_size * 3 / 4 + i) % ctx->frame_size;
+
+        ctx->scan_buffer[i + ctx->sample_offset] += (1 - k) * 10 * log10(norm(ctx->fft_freq_buffer[n]));
     }
 }
 
@@ -106,7 +122,7 @@ void* thread_reception(void *arg) {
 }
 
 float* allocate_scan_buffer(nbima_scan_context* ctx) {
-    int elements_number = ctx->frame_size * ((ctx->upper_freq - ctx->lower_freq) / MHz(1));
+    int elements_number = ctx->frame_size / 2 * ((ctx->upper_freq - ctx->lower_freq) / MHz(1));
     float *buf = new float[elements_number];
     std::fill(buf, buf + elements_number, 0);
     return buf;
@@ -147,15 +163,21 @@ int setup_sdr(rtlsdr_dev** dev, nbima_scan_context* scan_context) {
     return r;
 }
 
+void dc_coef_cb(Fl_Widget* w, void* ctx) {
+    ((nbima_scan_context*)ctx)->DC_blocker_coef = ((Fl_Value_Input*)w)->value();
+    dc_coef_input->value(((Fl_Value_Input*)w)->value());
+    dc_coef_slider->value(((Fl_Value_Input*)w)->value());
+}
+
 int main() {
     // Scan parameters
     nbima_scan_context scan_context;
-    scan_context.lower_freq = MHz(85);
-    scan_context.upper_freq = MHz(115);
+    scan_context.lower_freq = MHz(99);
+    scan_context.upper_freq = MHz(101);
     scan_context.sample_rate = 2048000;
     scan_context.frame_size = 4096 / 2;
 
-    scan_context.sleep_period = 0; // [ms]
+    scan_context.sleep_period = 500; // [ms]
     scan_context.spectre_decimation = 1;
 
     // Set up an SDR device
@@ -181,14 +203,18 @@ int main() {
 #endif
     auto window = make_window();
     window->show();
+    auto dsp_window = make_dsp_window();
+    dsp_window->show();
     
     float *test_buffer = new float[1000];
     for (int i = 0; i < 1000; i++) {
         test_buffer[i] = rand() % 100 + 340;
     }
-    noise_spectre_box->link_buffer(scan_context.scan_buffer, scan_context.frame_size * 30);
+    noise_spectre_box->link_buffer(scan_context.scan_buffer, scan_context.frame_size);
 
     btn_calibrate->callback(calibrate_btn_cb, &scan_context);
+    dc_coef_input->callback(dc_coef_cb, &scan_context);
+    dc_coef_slider->callback(dc_coef_cb, &scan_context);
 
     return Fl::run();
 }

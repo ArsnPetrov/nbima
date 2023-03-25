@@ -1,15 +1,18 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.0305
+version 1.0308
 i18n_type 2
 i18n_include <nl_types.h>
 i18n_set 1
 header_name {.h}
 code_name {.cxx}
+decl {\#include "GUI_Spectre.hpp"} {public global
+}
+
 Function {make_window()} {open
 } {
   Fl_Window {} {
     label nbima open
-    xywh {293 409 1150 540} type Double labelsize 12 align 80 visible
+    xywh {237 272 1150 540} type Double labeltype NORMAL_LABEL labelsize 12 align 80 visible
   } {
     Fl_Group {} {
       label {Noise Source Calibration} open
@@ -40,9 +43,10 @@ Function {make_window()} {open
       label {help?}
       xywh {280 30 35 20} box NO_BOX labelsize 9 labelcolor 136
     }
-    Fl_Box {} {
+    Fl_Box noise_spectre_box {
       label {Estimated noise generator frequency spectrum}
       xywh {325 50 815 145} box FLAT_BOX color 24 labelsize 11 align 5
+      class GUI_Spectre
     }
     Fl_Group {} {
       label {Two-point circuit examination} open
@@ -96,6 +100,18 @@ Function {make_window()} {open
     Fl_Text_Display debug_info_panel {
       label {Debug info} selected
       xywh {10 400 305 125} labelsize 11 align 5 textsize 11
+    }
+  }
+}
+
+Function {make_about_window()} {open
+} {
+  Fl_Window {} {open
+    xywh {617 325 271 212} type Double labeltype NORMAL_LABEL align 80 visible
+  } {
+    Fl_Text_Display {} {
+      label nbima
+      xywh {55 35 160 110}
     }
   }
 }

@@ -8,6 +8,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#ifdef __APPLE__
+#include <unistd.h>
+#endif
 #ifdef unix
 #include <unistd.h>
 #include <X11/Xlib.h>
@@ -21,13 +24,13 @@
 
 #define PI 3.141592653589
 
-typedef struct
+typedef struct nbima_scan_context
 {
     rtlsdr_dev_t* device;
-    uint64_t lower_freq;
-    uint64_t upper_freq;
-    uint64_t current_freq = 0;
-    uint64_t sample_rate = 1;
+    uint32_t lower_freq;
+    uint32_t upper_freq;
+    uint32_t current_freq = 0;
+    uint32_t sample_rate = 1;
     uint32_t frame_size = 4096;
     uint32_t spectre_decimation = 1;
     uint32_t sleep_period; // ms
@@ -82,7 +85,7 @@ void* thread_tuner(void* arg) {
         
         // Debug info
         uint32_t _freq = rtlsdr_get_center_freq(ctx->device);
-        snprintf(info, 1024, "Center frequency: %f MHz\nScan buffer size: %d MiB\0", (float)_freq / MHz(1), _buffer_size_MiB);
+        snprintf(info, 1024, "Center frequency: %f MHz\nScan buffer size: %d MiB", (float)_freq / MHz(1), _buffer_size_MiB);
         buf->text(info);
 
         nbima_sleep(ctx->sleep_period);
@@ -137,6 +140,22 @@ void calibrate_btn_cb(Fl_Widget* w, void* ctx) {
     }
 }
 
+void setup_sdr(rtlsdr_dev** dev, nbima_scan_context* scan_context) {
+    auto r = rtlsdr_open(dev, 0);
+    
+    if (r) {
+        printf("Could not open an SDR device. Error code: %d\n", r);
+        return r;
+    }
+
+    rtlsdr_set_sample_rate(*dev, scan_context->sample_rate);
+    rtlsdr_set_tuner_gain_mode(*dev, 0);
+    rtlsdr_set_center_freq(*dev, scan_context->lower_freq);
+    rtlsdr_reset_buffer(*dev);
+    
+    return r;
+}
+
 int main() {
     // Scan parameters
     nbima_scan_context scan_context;
@@ -148,20 +167,9 @@ int main() {
     scan_context.sleep_period = 100; // [ms]
     scan_context.spectre_decimation = 1;
 
-    // Spectrum buffers
-
     // Set up an SDR device
     rtlsdr_dev_t* device;
-    auto r = rtlsdr_open(&device, 0);
-
-    if (r) {
-        printf("Could not open an SDR device. Error code: %d\n", r);
-    }
-
-    rtlsdr_set_sample_rate(device, scan_context.sample_rate);
-    rtlsdr_set_tuner_gain_mode(device, 0);
-    rtlsdr_set_center_freq(device, scan_context.lower_freq);
-    rtlsdr_reset_buffer(device);
+    setup_sdr(&device, &scan_context);
 
     scan_context.device = device;
 
@@ -183,6 +191,12 @@ int main() {
 #endif
     auto window = make_window();
     window->show();
+    
+    float *test_buffer = new float[100];
+    for (int i = 0; i < 100; i++) {
+        test_buffer[i] = rand() % 10 + 3;
+    }
+    noise_spectre_box->link_buffer(test_buffer, 100);
 
     btn_calibrate->callback(calibrate_btn_cb, &scan_context);
 

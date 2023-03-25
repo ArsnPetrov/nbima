@@ -5,19 +5,12 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <math.h>
-#ifdef _WIN32
-#include <windows.h>
-#endif
-#ifdef __APPLE__
-#include <unistd.h>
-#endif
-#ifdef unix
-#include <unistd.h>
-#include <X11/Xlib.h>
-#endif
 #include <cmath>
 #include <complex>
 #include <fftw3.h>
+#include <algorithm>
+
+#include "util.h"
 
 #define MHz(x) (long)((x) * 1000 * 1000)
 #define kHz(x) (long)((x) * 1000)
@@ -35,6 +28,7 @@ typedef struct nbima_scan_context
     uint32_t spectre_decimation = 1;
     uint32_t sleep_period; // ms
     int on = 0;
+    int sample_offset = 0;
 
     std::complex<float>* fft_time_buffer;
     std::complex<float>* fft_freq_buffer;
@@ -46,20 +40,7 @@ typedef struct nbima_scan_context
     pthread_t tid_reception;
 } nbima_scan_context;
 
-inline void nbima_sleep(int sleepMs)
-{
-#ifdef _WIN32
-	Sleep(sleepMs);
-#else
-	usleep(sleepMs * 1000);
-#endif
-}
-
-void Fl_Text_Display_force_redraw_callback(void *arg)
-{
-	((Fl_Text_Display*)arg)->redraw();
-	Fl::repeat_timeout(0.01, Fl_Text_Display_force_redraw_callback, arg);
-}
+template void Fl_force_redraw_callback<Fl_Text_Display>(void *arg);
 
 void* thread_tuner(void* arg) {
     static nbima_scan_context* ctx = (nbima_scan_context*)arg;
@@ -71,21 +52,25 @@ void* thread_tuner(void* arg) {
     char* info = (char*)malloc(1024 * sizeof(char));
     Fl_Text_Buffer* buf = new Fl_Text_Buffer();
     debug_info_panel->buffer(buf);
-    Fl::add_timeout(0.01, Fl_Text_Display_force_redraw_callback, debug_info_panel);
-    uint32_t _buffer_size_MiB = sizeof(float) * ctx->frame_size * 
-                          (ctx->upper_freq - ctx->lower_freq) / MHz(1) * 0.5 
-                          / ctx->spectre_decimation / 1024 / 1024;
+    Fl::add_timeout(0.01, Fl_force_redraw_callback<Fl_Text_Display>, debug_info_panel);
+    // uint32_t _buffer_size_MiB = sizeof(float) * ctx->frame_size * 
+    //                       (ctx->upper_freq - ctx->lower_freq) / MHz(1) * 0.5 
+    //                       / 1024 / 1024;
 
     while(1) {
         ctx->current_freq += MHz(1);
+        ctx->sample_offset += ctx->frame_size;
         if (ctx->current_freq >= ctx->upper_freq) {
             ctx->current_freq = ctx->lower_freq;
+            ctx->sample_offset = 0;
         }
         rtlsdr_set_center_freq(ctx->device, ctx->current_freq);
         
         // Debug info
         uint32_t _freq = rtlsdr_get_center_freq(ctx->device);
-        snprintf(info, 1024, "Center frequency: %f MHz\nScan buffer size: %d MiB", (float)_freq / MHz(1), _buffer_size_MiB);
+        uint32_t _gain = rtlsdr_get_tuner_gain(ctx->device);
+        printf("gain is %d\n", _gain);
+        snprintf(info, 1024, "Center frequency: %f MHz\nTuner gain: %f dB", (float)_freq / MHz(1), (float)_gain / 10);
         buf->text(info);
 
         nbima_sleep(ctx->sleep_period);
@@ -95,6 +80,7 @@ void* thread_tuner(void* arg) {
 // len - size of the u8 buffer
 void rtlsdr_cb(uint8_t* buf, uint32_t len, void* arg) {
     static nbima_scan_context* ctx = (nbima_scan_context*)arg;
+    static float k = 0.95;
 
     // u8[] -> std::complex<float>[]
     for (int i = 0; i < ctx->frame_size; i++) {
@@ -105,7 +91,10 @@ void rtlsdr_cb(uint8_t* buf, uint32_t len, void* arg) {
     fftwf_execute(ctx->fft_plan);
 
     // fft amplitude -> dB PSD
-    
+    for (int i = 0; i < ctx->frame_size; i++) {
+        ctx->scan_buffer[i + ctx->sample_offset] *= k;
+        ctx->scan_buffer[i + ctx->sample_offset] += (1 - k) * 10 * log10(norm(ctx->fft_freq_buffer[i]));
+    }
 }
 
 void* thread_reception(void *arg) {
@@ -117,13 +106,14 @@ void* thread_reception(void *arg) {
 }
 
 float* allocate_scan_buffer(nbima_scan_context* ctx) {
-    return new float[ctx->frame_size * 
-                    (ctx->upper_freq - ctx->lower_freq) / MHz(1) / 2 
-                     / ctx->spectre_decimation];
+    int elements_number = ctx->frame_size * ((ctx->upper_freq - ctx->lower_freq) / MHz(1));
+    float *buf = new float[elements_number];
+    std::fill(buf, buf + elements_number, 0);
+    return buf;
 }
 
 std::complex<float>* allocate_fft_buffer(nbima_scan_context* ctx) {
-    return new std::complex<float>[ctx->frame_size / ctx->spectre_decimation];
+    return new std::complex<float>[ctx->frame_size];
 }
 
 void nbima_scan(nbima_scan_context* ctx) {
@@ -140,7 +130,7 @@ void calibrate_btn_cb(Fl_Widget* w, void* ctx) {
     }
 }
 
-void setup_sdr(rtlsdr_dev** dev, nbima_scan_context* scan_context) {
+int setup_sdr(rtlsdr_dev** dev, nbima_scan_context* scan_context) {
     auto r = rtlsdr_open(dev, 0);
     
     if (r) {
@@ -150,6 +140,7 @@ void setup_sdr(rtlsdr_dev** dev, nbima_scan_context* scan_context) {
 
     rtlsdr_set_sample_rate(*dev, scan_context->sample_rate);
     rtlsdr_set_tuner_gain_mode(*dev, 0);
+    //rtlsdr_set_tuner_gain(*dev, 115);
     rtlsdr_set_center_freq(*dev, scan_context->lower_freq);
     rtlsdr_reset_buffer(*dev);
     
@@ -159,12 +150,12 @@ void setup_sdr(rtlsdr_dev** dev, nbima_scan_context* scan_context) {
 int main() {
     // Scan parameters
     nbima_scan_context scan_context;
-    scan_context.lower_freq = MHz(100);
-    scan_context.upper_freq = MHz(200);
-    scan_context.sample_rate = MHz(2);
-    scan_context.frame_size = 2048;
+    scan_context.lower_freq = MHz(85);
+    scan_context.upper_freq = MHz(115);
+    scan_context.sample_rate = 2048000;
+    scan_context.frame_size = 4096 / 2;
 
-    scan_context.sleep_period = 100; // [ms]
+    scan_context.sleep_period = 0; // [ms]
     scan_context.spectre_decimation = 1;
 
     // Set up an SDR device
@@ -174,7 +165,6 @@ int main() {
     scan_context.device = device;
 
     // Set up spectrum buffers for the default configuration
-
     scan_context.scan_buffer = allocate_scan_buffer(&scan_context);
 
     scan_context.fft_time_buffer = allocate_fft_buffer(&scan_context);
@@ -192,11 +182,11 @@ int main() {
     auto window = make_window();
     window->show();
     
-    float *test_buffer = new float[100];
-    for (int i = 0; i < 100; i++) {
-        test_buffer[i] = rand() % 10 + 3;
+    float *test_buffer = new float[1000];
+    for (int i = 0; i < 1000; i++) {
+        test_buffer[i] = rand() % 100 + 340;
     }
-    noise_spectre_box->link_buffer(test_buffer, 100);
+    noise_spectre_box->link_buffer(scan_context.scan_buffer, scan_context.frame_size * 30);
 
     btn_calibrate->callback(calibrate_btn_cb, &scan_context);
 

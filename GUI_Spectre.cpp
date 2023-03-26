@@ -8,6 +8,7 @@
 #include "GUI_Spectre.hpp"
 #include <cfloat>
 #include <algorithm>
+#include <cmath>
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -29,20 +30,29 @@ void GUI_Spectre::link_buffer(float* buf, int s) {
 //void GUI_Spectre::resize_buffer(int size) {};
 
 void GUI_Spectre::draw() {
-    fl_draw_box(FL_DOWN_BOX, x(), y(), w(), h(), FL_BLACK);
-
-    fl_color(FL_WHITE);
+    fl_draw_box(FL_FLAT_BOX, x(), y(), w(), h(), FL_BLACK);
     
     float min = FLT_MAX;
     float max = FLT_MIN;
     
-    for (int i = 0; i < buffer_size; i++) {
-        if (buffer[i] < min) {
-            min = std::max(buffer[i], -200.f);
+    int decimation = 2000;
+    
+    for (int i = 0; i < buffer_size / decimation; i++) {
+        float val = 0;
+        for (int j = 0; j < decimation; j++) {
+            val += buffer[decimation * i + j] / decimation;
         }
         
-        if (buffer[i] > max) {
-            max = buffer[i];
+        if (isinf(val)) {
+            continue;
+        }
+        
+        if (val < min) {
+            min = val;
+        }
+        
+        if (val > max) {
+            max = val;
         }
     }
     
@@ -56,21 +66,49 @@ void GUI_Spectre::draw() {
         printf("Buffer not found\n");
         return;
     }
-
-    int decimation = 1;
     
-    for (int i = 1; i < buffer_size / decimation; i++) {
-        float val0 = 0;
-        float val1 = 0;
-
+    fl_color(FL_DARK3);
+    float line_value = floor(min);
+    float line_step = span == 0 ? 1 : floor(span / 10) + 1;
+    while(line_value < max + line_step) {
+        fl_begin_line();
+        fl_vertex(x(),       y() + h() - (bias + line_value) * scale);
+        fl_vertex(x() + w(), y() + h() - (bias + line_value) * scale);
+        fl_end_line();
+        line_value += line_step;
+    }
+    
+//    // Min line
+//    fl_color(FL_BLUE);
+//    fl_begin_line();
+//    fl_vertex(x(),       y() + h() - (bias + min) * scale);
+//    fl_vertex(x() + w(), y() + h() - (bias + min) * scale);
+//    fl_end_line();
+//
+//    // Max line
+//    fl_color(FL_RED);
+//    fl_begin_line();
+//    fl_vertex(x(),       y() + h() - (bias + max) * scale);
+//    fl_vertex(x() + w(), y() + h() - (bias + max) * scale);
+//    fl_end_line();
+    
+    // Graph
+    fl_color(FL_WHITE);
+    fl_begin_line();
+    for (int i = 0; i < buffer_size / decimation; i++) {
+        float val = 0;
         for (int j = 0; j < decimation; j++) {
-            val0 += buffer[decimation*(i - 1) + j] / decimation;
-            val1 += buffer[decimation* i      + j] / decimation;
+            val += buffer[decimation * i + j] / decimation;
+        }
+
+        float _x = x() + (float)w() / (buffer_size - 1) * (decimation * (i - 1));
+        float _y = y() + h() - (val + bias) * scale;
+        
+        if (isnan(_y) || isinf(_y)) {
+            continue;
         }
         
-        fl_begin_line();
-        fl_vertex(x() + (float)w() / (buffer_size - 1) * (decimation*(i - 1)), y() + h() - (val0 + bias) * scale);
-        fl_vertex(x() + (float)w() / (buffer_size - 1) * (decimation*i),       y() + h() - (val1 + bias) * scale);
-        fl_end_line();
+        fl_vertex(_x, _y);
     }
+    fl_end_line();
 };

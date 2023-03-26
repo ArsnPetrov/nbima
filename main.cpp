@@ -37,7 +37,7 @@ typedef struct nbima_scan_context
     float* scan_buffer;
 
     // dsp
-    float DC_blocker_coef = 0.1;
+    float DC_blocker_coef = 1;
 
     pthread_t tid_tuner;
     pthread_t tid_reception;
@@ -124,7 +124,7 @@ void* thread_reception(void *arg) {
 float* allocate_scan_buffer(nbima_scan_context* ctx) {
     int elements_number = ctx->frame_size / 2 * ((ctx->upper_freq - ctx->lower_freq) / MHz(1));
     float *buf = new float[elements_number];
-    std::fill(buf, buf + elements_number, 0);
+    std::fill(buf, buf + elements_number, 70);
     return buf;
 }
 
@@ -135,8 +135,8 @@ std::complex<float>* allocate_fft_buffer(nbima_scan_context* ctx) {
 void nbima_scan(nbima_scan_context* ctx) {
     if (!ctx->on) {
         ctx->on = 1;
-        pthread_create(&ctx->tid_tuner, NULL, thread_tuner, ctx);
         pthread_create(&ctx->tid_reception, NULL, thread_reception, ctx);
+        pthread_create(&ctx->tid_tuner, NULL, thread_tuner, ctx);
     }
 }
 
@@ -172,12 +172,12 @@ void dc_coef_cb(Fl_Widget* w, void* ctx) {
 int main() {
     // Scan parameters
     nbima_scan_context scan_context;
-    scan_context.lower_freq = MHz(99);
-    scan_context.upper_freq = MHz(101);
+    scan_context.lower_freq = MHz(30);
+    scan_context.upper_freq = MHz(1030);
     scan_context.sample_rate = 2048000;
     scan_context.frame_size = 4096 / 2;
 
-    scan_context.sleep_period = 500; // [ms]
+    scan_context.sleep_period = 0; // [ms]
     scan_context.spectre_decimation = 1;
 
     // Set up an SDR device
@@ -203,18 +203,18 @@ int main() {
 #endif
     auto window = make_window();
     window->show();
-    auto dsp_window = make_dsp_window();
-    dsp_window->show();
+//    auto dsp_window = make_dsp_window();
+//    dsp_window->show();
     
     float *test_buffer = new float[1000];
     for (int i = 0; i < 1000; i++) {
         test_buffer[i] = rand() % 100 + 340;
     }
-    noise_spectre_box->link_buffer(scan_context.scan_buffer, scan_context.frame_size);
+    noise_spectre_box->link_buffer(scan_context.scan_buffer, scan_context.frame_size * 500);
 
     btn_calibrate->callback(calibrate_btn_cb, &scan_context);
-    dc_coef_input->callback(dc_coef_cb, &scan_context);
-    dc_coef_slider->callback(dc_coef_cb, &scan_context);
+//    dc_coef_input->callback(dc_coef_cb, &scan_context);
+//    dc_coef_slider->callback(dc_coef_cb, &scan_context);
 
     return Fl::run();
 }

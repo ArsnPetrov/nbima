@@ -1,5 +1,5 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.0305
+version 1.0308
 i18n_type 2
 i18n_include <nl_types.h>
 i18n_set 1
@@ -11,8 +11,8 @@ decl {\#include "GUI_Spectre.hpp"} {public global
 Function {make_window()} {open
 } {
   Fl_Window {} {
-    label nbima
-    xywh {524 251 1150 540} type Double labelsize 12 align 80 visible
+    label nbima open selected
+    xywh {243 284 1150 540} type Double labelsize 12 visible
   } {
     Fl_Group {} {
       label {Noise Source Calibration} open
@@ -85,8 +85,12 @@ Function {make_window()} {open
         xywh {0 0 100 20} labelsize 10
       }
       MenuItem {} {
+        label {DSP parameters}
+        xywh {25 25 100 20} labelsize 10
+      }
+      MenuItem {} {
         label About
-        xywh {10 10 100 20} labelsize 10
+        xywh {15 15 100 20} labelsize 10
       }
     }
     Fl_Box {} {
@@ -107,7 +111,7 @@ Function {make_window()} {open
 Function {make_about_window()} {open
 } {
   Fl_Window {} {open
-    xywh {704 339 270 210} type Double align 80 hide
+    xywh {704 339 270 210} type Double hide
   } {
     Fl_Text_Display {} {
       label nbima
@@ -119,17 +123,17 @@ Function {make_about_window()} {open
 Function {make_dsp_window()} {open
 } {
   Fl_Window {} {
-    label {DSP parameters} open selected
-    xywh {976 399 330 65} type Double visible
+    label {DSP parameters} open
+    xywh {1036 151 330 65} type Double hotspot visible
   } {
     Fl_Slider dc_coef_slider {
       callback {dc_coef_input->value(o->value());}
-      xywh {150 35 170 20} type Horizontal labelsize 12 align 7 value 0.1
+      xywh {150 35 170 20} type Horizontal labelsize 12 align 7 value 1
     }
     Fl_Value_Input dc_coef_input {
       label {DC blocker coefficient}
       callback {dc_coef_slider->value(o->value());}
-      xywh {150 10 170 20} labelsize 12 value 0.1 textsize 12
+      xywh {150 10 170 20} labelsize 12 value 1 textsize 12
     }
   }
 }

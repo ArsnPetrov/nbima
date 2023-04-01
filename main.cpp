@@ -59,13 +59,15 @@ void* thread_tuner(void* arg) {
     // uint32_t _buffer_size_MiB = sizeof(float) * ctx->frame_size * 
     //                       (ctx->upper_freq - ctx->lower_freq) / MHz(1) * 0.5 
     //                       / 1024 / 1024;
-
+    nbima_sleep(ctx->sleep_period);
+    
     while(1) {
         ctx->current_freq += MHz(1);
         ctx->sample_offset += ctx->frame_size / 2;
         if (ctx->current_freq >= ctx->upper_freq) {
             ctx->current_freq = ctx->lower_freq;
             ctx->sample_offset = 0;
+            break;
         }
         rtlsdr_set_center_freq(ctx->device, ctx->current_freq);
         
@@ -78,6 +80,8 @@ void* thread_tuner(void* arg) {
 
         nbima_sleep(ctx->sleep_period);
     }
+
+    return 0;
 }
 
 // len - size of the u8 buffer
@@ -135,6 +139,12 @@ std::complex<float>* allocate_fft_buffer(nbima_scan_context* ctx) {
 void nbima_scan(nbima_scan_context* ctx) {
     if (!ctx->on) {
         ctx->on = 1;
+
+        auto mes_window = make_measurement_window();
+        mes_window->show();
+
+        noise_spectre_box->link_buffer(ctx->scan_buffer, ctx->frame_size * 750);
+
         pthread_create(&ctx->tid_reception, NULL, thread_reception, ctx);
         pthread_create(&ctx->tid_tuner, NULL, thread_tuner, ctx);
     }
@@ -171,29 +181,29 @@ void dc_coef_cb(Fl_Widget* w, void* ctx) {
 
 int main() {
     // Scan parameters
-    nbima_scan_context scan_context;
-    scan_context.lower_freq = MHz(30);
-    scan_context.upper_freq = MHz(1030);
-    scan_context.sample_rate = 2048000;
-    scan_context.frame_size = 4096 / 2;
+    nbima_scan_context noise_generator_scan;
+    noise_generator_scan.lower_freq = MHz(40);
+    noise_generator_scan.upper_freq = MHz(1540);
+    noise_generator_scan.sample_rate = 2048000;
+    noise_generator_scan.frame_size = 4096 / 2;
 
-    scan_context.sleep_period = 0; // [ms]
-    scan_context.spectre_decimation = 1;
+    noise_generator_scan.sleep_period = 0; // [ms]
+    noise_generator_scan.spectre_decimation = 1;
 
     // Set up an SDR device
     rtlsdr_dev_t* device;
-    setup_sdr(&device, &scan_context);
+    setup_sdr(&device, &noise_generator_scan);
 
-    scan_context.device = device;
+    noise_generator_scan.device = device;
 
     // Set up spectrum buffers for the default configuration
-    scan_context.scan_buffer = allocate_scan_buffer(&scan_context);
+    noise_generator_scan.scan_buffer = allocate_scan_buffer(&noise_generator_scan);
 
-    scan_context.fft_time_buffer = allocate_fft_buffer(&scan_context);
-    scan_context.fft_freq_buffer = allocate_fft_buffer(&scan_context);
-    scan_context.fft_plan = fftwf_plan_dft_1d(scan_context.frame_size,
-                                              reinterpret_cast<fftwf_complex*>(scan_context.fft_time_buffer), 
-                                              reinterpret_cast<fftwf_complex*>(scan_context.fft_freq_buffer), 
+    noise_generator_scan.fft_time_buffer = allocate_fft_buffer(&noise_generator_scan);
+    noise_generator_scan.fft_freq_buffer = allocate_fft_buffer(&noise_generator_scan);
+    noise_generator_scan.fft_plan        = fftwf_plan_dft_1d(noise_generator_scan.frame_size,
+                                              reinterpret_cast<fftwf_complex*>(noise_generator_scan.fft_time_buffer), 
+                                              reinterpret_cast<fftwf_complex*>(noise_generator_scan.fft_freq_buffer), 
                                               FFTW_FORWARD, 
                                               FFTW_MEASURE);
     
@@ -201,14 +211,11 @@ int main() {
 #ifdef unix
     XInitThreads();
 #endif
+    Fl::visible_focus(0);
     auto window = make_window();
     window->show();
-    auto mes_window = make_measurement_window();
-    mes_window->show();
-    
-    noise_spectre_box->link_buffer(scan_context.scan_buffer, scan_context.frame_size * 500);
 
-    btn_calibrate->callback(calibrate_btn_cb, &scan_context);
+    btn_calibrate->callback(calibrate_btn_cb, &noise_generator_scan);
 //    dc_coef_input->callback(dc_coef_cb, &scan_context);
 //    dc_coef_slider->callback(dc_coef_cb, &scan_context);
 

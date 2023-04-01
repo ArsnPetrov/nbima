@@ -35,7 +35,7 @@ void GUI_Spectre::draw() {
     float min = FLT_MAX;
     float max = FLT_MIN;
     
-    int decimation = 1000;
+    int decimation = buffer_size / w();
     
     for (int i = 0; i < buffer_size / decimation; i++) {
         float val = 0;
@@ -43,7 +43,7 @@ void GUI_Spectre::draw() {
             val += buffer[decimation * i + j] / decimation;
         }
         
-        if (isinf(val)) {
+        if (std::isinf(val)) {
             continue;
         }
         
@@ -104,7 +104,7 @@ void GUI_Spectre::draw() {
         float _x = x() + (float)w() / (buffer_size - 1) * (decimation * (i - 1));
         float _y = y() + h() - (val + bias) * scale;
         
-        if (isnan(_y) || isinf(_y)) {
+        if (std::isnan(_y) || std::isinf(_y)) {
             continue;
         }
         

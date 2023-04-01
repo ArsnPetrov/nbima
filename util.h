@@ -25,7 +25,7 @@ template<typename T>
 void Fl_force_redraw_callback(void *arg)
 {
 	((T*)arg)->redraw();
-	Fl::repeat_timeout(0.01, Fl_force_redraw_callback<T>, arg);
+	Fl::repeat_timeout(0.016, Fl_force_redraw_callback<T>, arg);
 }
 
 #endif /* GUI_Spectre_hpp */

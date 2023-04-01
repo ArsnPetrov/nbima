@@ -203,13 +203,9 @@ int main() {
 #endif
     auto window = make_window();
     window->show();
-//    auto dsp_window = make_dsp_window();
-//    dsp_window->show();
+    auto mes_window = make_measurement_window();
+    mes_window->show();
     
-    float *test_buffer = new float[1000];
-    for (int i = 0; i < 1000; i++) {
-        test_buffer[i] = rand() % 100 + 340;
-    }
     noise_spectre_box->link_buffer(scan_context.scan_buffer, scan_context.frame_size * 500);
 
     btn_calibrate->callback(calibrate_btn_cb, &scan_context);

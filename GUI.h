@@ -5,21 +5,21 @@
 #include <FL/Fl.H>
 #include "GUI_Spectre.hpp"
 #include <FL/Fl_Double_Window.H>
-#include <FL/Fl_Group.H>
-#include <FL/Fl_Value_Input.H>
-#include <FL/Fl_Button.H>
-extern Fl_Button *btn_calibrate;
-extern GUI_Spectre *noise_spectre_box;
 #include <FL/Fl_Menu_Bar.H>
-#include <FL/Fl_Box.H>
 #include <FL/Fl_Text_Display.H>
 extern Fl_Text_Display *debug_info_panel;
+#include <FL/Fl_Group.H>
+#include <FL/Fl_Button.H>
+extern Fl_Button *btn_calibrate;
 Fl_Double_Window* make_window();
 extern unsigned char menu__i18n_done;
 extern Fl_Menu_Item menu_[];
 Fl_Double_Window* make_about_window();
 #include <FL/Fl_Slider.H>
 extern Fl_Slider *dc_coef_slider;
+#include <FL/Fl_Value_Input.H>
 extern Fl_Value_Input *dc_coef_input;
 Fl_Double_Window* make_dsp_window();
+extern GUI_Spectre *noise_spectre_box;
+Fl_Double_Window* make_measurement_window();
 #endif

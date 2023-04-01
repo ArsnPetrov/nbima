@@ -12,71 +12,8 @@ Function {make_window()} {open
 } {
   Fl_Window {} {
     label nbima open selected
-    xywh {243 284 1150 540} type Double labelsize 12 visible
+    xywh {382 301 696 255} type Double color 55 labeltype NO_LABEL labelsize 12 align 1 visible
   } {
-    Fl_Group {} {
-      label {Noise Source Calibration} open
-      xywh {10 50 305 140} box BORDER_BOX labelsize 11 align 5
-    } {
-      Fl_Value_Input {} {
-        label {Lower frequency, MHz}
-        xywh {155 60 150 20} labelsize 12 value 100 textsize 12
-      }
-      Fl_Value_Input {} {
-        label {Upper frequency, MHz}
-        xywh {155 85 150 20} labelsize 12 value 1000 textsize 12
-      }
-      Fl_Value_Input {} {
-        label {Frame size}
-        xywh {155 110 150 20} labelsize 12 value 4096 textsize 12
-      }
-      Fl_Value_Input {} {
-        label {Re-tuning period, ms}
-        xywh {155 135 150 20} labelsize 12 value 100 textsize 12
-      }
-      Fl_Button btn_calibrate {
-        label Calibrate
-        xywh {230 160 75 20} type Toggle labelsize 12
-      }
-    }
-    Fl_Button {} {
-      label {help?}
-      xywh {280 30 35 20} box NO_BOX labelsize 9 labelcolor 136
-    }
-    Fl_Box noise_spectre_box {
-      label {Estimated noise generator frequency spectrum}
-      xywh {325 50 815 145} box FLAT_BOX color 24 labelsize 11 align 5
-      class GUI_Spectre
-    }
-    Fl_Group {} {
-      label {Two-point circuit examination} open
-      xywh {10 215 305 165} box BORDER_BOX labelsize 11 align 5
-    } {
-      Fl_Button {} {
-        label Measure
-        xywh {220 350 85 20} labelsize 12
-      }
-      Fl_Value_Input {} {
-        label {Lower frequency, MHz}
-        xywh {155 225 150 20} labelsize 12 value 100 textsize 12
-      }
-      Fl_Value_Input {} {
-        label {Upper frequency, MHz}
-        xywh {155 250 150 20} labelsize 12 value 1000 textsize 12
-      }
-      Fl_Value_Input {} {
-        label {Frame size}
-        xywh {155 275 150 20} labelsize 12 value 4096 textsize 12
-      }
-      Fl_Value_Input {} {
-        label {Impedance, Ω}
-        xywh {155 325 150 20} labelsize 12 textsize 12
-      }
-      Fl_Value_Input {} {
-        label {Re-tuning period, ms}
-        xywh {155 300 150 20} labelsize 12 value 100 textsize 12
-      }
-    }
     Fl_Menu_Bar {} {open
       xywh {0 0 1150 25} box BORDER_BOX
     } {
@@ -93,25 +30,44 @@ Function {make_window()} {open
         xywh {15 15 100 20} labelsize 10
       }
     }
-    Fl_Box {} {
-      label {Frequency response}
-      xywh {325 215 815 145} box FLAT_BOX color 24 labelsize 11 align 5
-    }
-    Fl_Box {} {
-      label SWR
-      xywh {325 380 815 145} box FLAT_BOX color 24 labelsize 11 align 5
-    }
     Fl_Text_Display debug_info_panel {
       label {Debug info}
-      xywh {10 400 305 125} labelsize 11 align 5 textsize 11
+      xywh {15 170 665 70} labelsize 11 align 5 textsize 11
+    }
+    Fl_Group {} {open
+      xywh {175 60 110 65} box BORDER_FRAME color 0
+    } {}
+    Fl_Group {} {
+      label {Noise generator} open
+      xywh {15 40 195 105} box BORDER_BOX labelsize 12 align 16
+    } {
+      Fl_Button btn_calibrate {
+        label Measure
+        xywh {70 110 90 25} labelsize 11
+      }
+    }
+    Fl_Group {} {open
+      xywh {420 65 90 65} box BORDER_FRAME color 0
+    } {}
+    Fl_Group {} {
+      label {RTL-SDR} open
+      xywh {485 45 195 105} box BORDER_BOX labelsize 12 align 16
+    } {}
+    Fl_Group {} {
+      label Antenna open
+      xywh {255 45 195 105} box BORDER_BOX labelsize 12 align 16
+    } {
+      Fl_Button {} {
+        label Measure
+        xywh {310 115 90 25} labelsize 11
+      }
     }
   }
 }
 
-Function {make_about_window()} {open
-} {
+Function {make_about_window()} {} {
   Fl_Window {} {open
-    xywh {704 339 270 210} type Double hide
+    xywh {704 339 270 210} type Double labeltype NO_LABEL align 1 hide
   } {
     Fl_Text_Display {} {
       label nbima
@@ -124,7 +80,7 @@ Function {make_dsp_window()} {open
 } {
   Fl_Window {} {
     label {DSP parameters} open
-    xywh {1036 151 330 65} type Double hotspot visible
+    xywh {1036 151 330 65} type Double labeltype NO_LABEL align 1 hotspot visible
   } {
     Fl_Slider dc_coef_slider {
       callback {dc_coef_input->value(o->value());}
@@ -134,6 +90,50 @@ Function {make_dsp_window()} {open
       label {DC blocker coefficient}
       callback {dc_coef_slider->value(o->value());}
       xywh {150 10 170 20} labelsize 12 value 1 textsize 12
+    }
+  }
+}
+
+Function {make_measurement_window()} {open
+} {
+  Fl_Window {} {
+    label {Noise measurement} open
+    xywh {245 174 800 175} type Double labeltype NO_LABEL align 1 resizable visible
+  } {
+    Fl_Group {} {open
+      xywh {0 35 800 150} resizable
+    } {
+      Fl_Box noise_spectre_box {
+        label {Estimated noise spectrum}
+        xywh {0 35 800 140} box FLAT_BOX color 0 labeltype NO_LABEL labelsize 11 align 1 hotspot
+        class GUI_Spectre
+      }
+    }
+    Fl_Group {} {open
+      xywh {0 0 800 35}
+    } {
+      Fl_Group {} {open
+        xywh {5 0 155 35}
+      } {
+        Fl_Button {} {
+          label {⏵}
+          xywh {5 5 25 25} labelsize 18 labelcolor 62
+        }
+        Fl_Button {} {
+          label {⏹}
+          xywh {35 5 25 25} labelcolor 80
+        }
+        Fl_Value_Input {} {
+          xywh {95 5 65 25} value 100
+        }
+        Fl_Button {} {
+          label {⏏}
+          xywh {65 5 25 25} labelsize 12
+        }
+      }
+      Fl_Group {} {open
+        xywh {165 5 635 25} resizable
+      } {}
     }
   }
 }

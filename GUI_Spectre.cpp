@@ -35,7 +35,7 @@ void GUI_Spectre::draw() {
     float min = FLT_MAX;
     float max = FLT_MIN;
     
-    int decimation = 2000;
+    int decimation = 1000;
     
     for (int i = 0; i < buffer_size / decimation; i++) {
         float val = 0;

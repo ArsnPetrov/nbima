@@ -9,6 +9,7 @@
 #include <cfloat>
 #include <algorithm>
 #include <cmath>
+#include <string>
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -33,9 +34,9 @@ void GUI_Spectre::draw() {
     fl_draw_box(FL_FLAT_BOX, x(), y(), w(), h(), FL_BLACK);
     
     float min = FLT_MAX;
-    float max = FLT_MIN;
+    float max = -FLT_MAX;
     
-    int decimation = buffer_size / w();
+    int decimation = buffer_size / 1000;
     
     for (int i = 0; i < buffer_size / decimation; i++) {
         float val = 0;
@@ -67,14 +68,19 @@ void GUI_Spectre::draw() {
         return;
     }
     
+    fl_font(FL_HELVETICA, 11);
     fl_color(FL_DARK3);
-    float line_value = floor(min);
-    float line_step = span == 0 ? 1 : floor(span / 10) + 1;
+    float line_value = (int)min / 2 * 2;
+    float line_step = span == 0 ? 1 : std::pow(2, (int)std::log2f(span / 4));
     while(line_value < max + line_step) {
         fl_begin_line();
         fl_vertex(x(),       y() + h() - (bias + line_value) * scale);
         fl_vertex(x() + w(), y() + h() - (bias + line_value) * scale);
         fl_end_line();
+
+        std::string freq_str = std::to_string((int)line_value);
+		freq_str += " dB";
+        fl_draw(freq_str.c_str(), x() + 10, y() + h() - (bias + line_value) * scale);
         line_value += line_step;
     }
     

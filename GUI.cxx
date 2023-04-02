@@ -20,6 +20,8 @@ Fl_Text_Display *debug_info_panel=(Fl_Text_Display *)0;
 
 Fl_Button *btn_calibrate=(Fl_Button *)0;
 
+Fl_Progress *noise_generator_progress=(Fl_Progress *)0;
+
 Fl_Double_Window* make_window() {
   Fl_Double_Window* w;
   { Fl_Double_Window* o = new Fl_Double_Window(695, 375, gettext("nbima"));
@@ -102,12 +104,13 @@ Fl_Double_Window* make_window() {
         btn_calibrate->color((Fl_Color)55);
         btn_calibrate->labelsize(11);
       } // Fl_Button* btn_calibrate
-      { Fl_Progress* o = new Fl_Progress(30, 54, 175, 17, gettext("Progress (12%)"));
-        o->box(FL_GTK_DOWN_BOX);
-        o->selection_color((Fl_Color)180);
-        o->labelsize(11);
+      { Fl_Progress* o = noise_generator_progress = new Fl_Progress(30, 54, 175, 17, gettext("Progress..."));
+        noise_generator_progress->box(FL_GTK_DOWN_BOX);
+        noise_generator_progress->selection_color((Fl_Color)180);
+        noise_generator_progress->labelsize(11);
+        noise_generator_progress->hide();
         o->value(32);
-      } // Fl_Progress* o
+      } // Fl_Progress* noise_generator_progress
       o->end();
     } // Fl_Group* o
     { Fl_Button* o = new Fl_Button(250, 175, 75, 20, gettext("save to .csv"));
@@ -173,6 +176,8 @@ Fl_Double_Window* make_dsp_window() {
 
 GUI_Spectre *noise_spectre_box=(GUI_Spectre *)0;
 
+Fl_Button *start_noise_scan=(Fl_Button *)0;
+
 Fl_Double_Window* make_measurement_window() {
   Fl_Double_Window* w;
   { Fl_Double_Window* o = new Fl_Double_Window(800, 175, gettext("Noise generator"));
@@ -188,7 +193,7 @@ Fl_Double_Window* make_measurement_window() {
         noise_spectre_box->labelsize(11);
         noise_spectre_box->labelcolor(FL_FOREGROUND_COLOR);
         noise_spectre_box->align(Fl_Align(FL_ALIGN_TOP));
-        noise_spectre_box->when(FL_WHEN_RELEASE_ALWAYS);
+        noise_spectre_box->when(FL_WHEN_RELEASE);
         Fl_Group::current()->resizable(noise_spectre_box);
       } // GUI_Spectre* noise_spectre_box
       o->end();
@@ -196,14 +201,15 @@ Fl_Double_Window* make_measurement_window() {
     } // Fl_Group* o
     { Fl_Group* o = new Fl_Group(0, 0, 800, 35);
       { Fl_Group* o = new Fl_Group(5, 0, 285, 35);
-        { Fl_Button* o = new Fl_Button(5, 5, 25, 25, gettext(">"));
-          o->box(FL_GTK_UP_BOX);
-          o->down_box(FL_GTK_DOWN_BOX);
-          o->color((Fl_Color)106);
-          o->selection_color((Fl_Color)96);
-          o->labelfont(1);
-          o->labelcolor((Fl_Color)62);
-        } // Fl_Button* o
+        { start_noise_scan = new Fl_Button(5, 5, 25, 25, gettext(">"));
+          start_noise_scan->type(1);
+          start_noise_scan->box(FL_GTK_UP_BOX);
+          start_noise_scan->down_box(FL_GTK_DOWN_BOX);
+          start_noise_scan->color((Fl_Color)106);
+          start_noise_scan->selection_color((Fl_Color)106);
+          start_noise_scan->labelfont(1);
+          start_noise_scan->labelcolor((Fl_Color)62);
+        } // Fl_Button* start_noise_scan
         { Fl_Button* o = new Fl_Button(35, 5, 25, 25, gettext("||"));
           o->box(FL_GTK_UP_BOX);
           o->down_box(FL_GTK_DOWN_BOX);

@@ -56,10 +56,13 @@ void* thread_tuner(void* arg) {
     Fl_Text_Buffer* buf = new Fl_Text_Buffer();
     debug_info_panel->buffer(buf);
     Fl::add_timeout(0.01, Fl_force_redraw_callback<Fl_Text_Display>, debug_info_panel);
+    buf->text(info);
     // uint32_t _buffer_size_MiB = sizeof(float) * ctx->frame_size * 
     //                       (ctx->upper_freq - ctx->lower_freq) / MHz(1) * 0.5 
     //                       / 1024 / 1024;
     nbima_sleep(ctx->sleep_period);
+
+    noise_generator_progress->set_visible();
     
     while(1) {
         ctx->current_freq += MHz(1);
@@ -70,16 +73,23 @@ void* thread_tuner(void* arg) {
             break;
         }
         rtlsdr_set_center_freq(ctx->device, ctx->current_freq);
+
+        noise_generator_progress->value((float)(ctx->current_freq - ctx->lower_freq) / (ctx->upper_freq - ctx->lower_freq) * 100);
         
         // Debug info
         uint32_t _freq = rtlsdr_get_center_freq(ctx->device);
         uint32_t _gain = rtlsdr_get_tuner_gain(ctx->device);
         printf("gain is %d\n", _gain);
         snprintf(info, 1024, "Center frequency: %f MHz\nTuner gain: %f dB", (float)_freq / MHz(1), (float)_gain / 10);
-        buf->text(info);
 
         nbima_sleep(ctx->sleep_period);
     }
+
+    noise_generator_progress->hide();
+
+    ctx->on = 0;
+    start_noise_scan->value(0);
+    pthread_cancel(ctx->tid_reception);
 
     return 0;
 }
@@ -113,7 +123,7 @@ void rtlsdr_cb(uint8_t* buf, uint32_t len, void* arg) {
 
         int n = (ctx->frame_size * 3 / 4 + i) % ctx->frame_size;
 
-        ctx->scan_buffer[i + ctx->sample_offset] += (1 - k) * 10 * log10(norm(ctx->fft_freq_buffer[n]));
+        ctx->scan_buffer[i + ctx->sample_offset] += (1 - k) * 20 * log10(norm(ctx->fft_freq_buffer[n]) / (ctx->frame_size*ctx->frame_size) / (256 * 256));
     }
 }
 
@@ -128,7 +138,7 @@ void* thread_reception(void *arg) {
 float* allocate_scan_buffer(nbima_scan_context* ctx) {
     int elements_number = ctx->frame_size / 2 * ((ctx->upper_freq - ctx->lower_freq) / MHz(1));
     float *buf = new float[elements_number];
-    std::fill(buf, buf + elements_number, 70);
+    std::fill(buf, buf + elements_number, -110);
     return buf;
 }
 
@@ -140,19 +150,23 @@ void nbima_scan(nbima_scan_context* ctx) {
     if (!ctx->on) {
         ctx->on = 1;
 
-        auto mes_window = make_measurement_window();
-        mes_window->show();
-
-        noise_spectre_box->link_buffer(ctx->scan_buffer, ctx->frame_size * 750);
-
         pthread_create(&ctx->tid_reception, NULL, thread_reception, ctx);
         pthread_create(&ctx->tid_tuner, NULL, thread_tuner, ctx);
     }
 }
 
+void noise_scan_cb(Fl_Widget* w, void* ctx) {
+    nbima_scan((nbima_scan_context*)ctx);
+}
+
 void calibrate_btn_cb(Fl_Widget* w, void* ctx) {
     if (!((nbima_scan_context*)ctx)->on) {
-        nbima_scan((nbima_scan_context*)ctx);
+        auto mes_window = make_measurement_window();
+        mes_window->show();
+
+        noise_spectre_box->link_buffer(((nbima_scan_context*)ctx)->scan_buffer, ((nbima_scan_context*)ctx)->frame_size * 500);
+
+        start_noise_scan->callback(noise_scan_cb, ctx);
     }
 }
 
@@ -183,7 +197,7 @@ int main() {
     // Scan parameters
     nbima_scan_context noise_generator_scan;
     noise_generator_scan.lower_freq = MHz(40);
-    noise_generator_scan.upper_freq = MHz(1540);
+    noise_generator_scan.upper_freq = MHz(1040);
     noise_generator_scan.sample_rate = 2048000;
     noise_generator_scan.frame_size = 4096 / 2;
 

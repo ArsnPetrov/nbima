@@ -75,9 +75,9 @@ about_window->show();}
         label Measure
         xywh {30 115 175 25} box GTK_UP_BOX color 55 labelsize 11
       }
-      Fl_Progress {} {
-        label {Progress (12%)}
-        xywh {30 54 175 17} box GTK_DOWN_BOX selection_color 180 labelsize 11
+      Fl_Progress noise_generator_progress {
+        label {Progress...}
+        xywh {30 54 175 17} box GTK_DOWN_BOX selection_color 180 labelsize 11 hide
         code0 {o->value(32);}
       }
     }
@@ -91,7 +91,7 @@ about_window->show();}
 Function {make_about_window()} {open
 } {
   Fl_Window about_window {open
-    xywh {2714 539 270 260} type Double color 55 size_range {0 0 270 260} visible
+    xywh {2519 410 270 260} type Double color 55 size_range {0 0 270 260} visible
   } {
     Fl_Help_View {} {
       label About
@@ -123,14 +123,14 @@ Function {make_measurement_window()} {open
 } {
   Fl_Window {} {
     label {Noise generator} open
-    xywh {2518 746 800 175} type Double color 38 resizable visible
+    xywh {2416 582 800 175} type Double color 38 resizable visible
   } {
     Fl_Group {} {open
       xywh {0 35 800 150} resizable
     } {
       Fl_Box noise_spectre_box {
         label {Estimated noise spectrum}
-        xywh {0 35 800 140} box FLAT_BOX color 0 labeltype NO_LABEL labelsize 11 align 1 when 6 resizable
+        xywh {0 35 800 140} box FLAT_BOX color 0 labeltype NO_LABEL labelsize 11 align 1 resizable
         class GUI_Spectre
       }
     }
@@ -140,9 +140,9 @@ Function {make_measurement_window()} {open
       Fl_Group {} {open
         xywh {5 0 285 35}
       } {
-        Fl_Button {} {
+        Fl_Button start_noise_scan {
           label {>}
-          xywh {5 5 25 25} box GTK_UP_BOX down_box GTK_DOWN_BOX color 106 selection_color 96 labelfont 1 labelcolor 62
+          xywh {5 5 25 25} type Toggle box GTK_UP_BOX down_box GTK_DOWN_BOX color 106 selection_color 106 labelfont 1 labelcolor 62
         }
         Fl_Button {} {
           label {||}

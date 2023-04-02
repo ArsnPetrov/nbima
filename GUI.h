@@ -12,6 +12,7 @@ extern Fl_Text_Display *debug_info_panel;
 #include <FL/Fl_Button.H>
 extern Fl_Button *btn_calibrate;
 #include <FL/Fl_Progress.H>
+extern Fl_Progress *noise_generator_progress;
 Fl_Double_Window* make_window();
 extern unsigned char menu__i18n_done;
 extern Fl_Menu_Item menu_[];
@@ -24,5 +25,6 @@ extern Fl_Slider *dc_coef_slider;
 extern Fl_Value_Input *dc_coef_input;
 Fl_Double_Window* make_dsp_window();
 extern GUI_Spectre *noise_spectre_box;
+extern Fl_Button *start_noise_scan;
 Fl_Double_Window* make_measurement_window();
 #endif
